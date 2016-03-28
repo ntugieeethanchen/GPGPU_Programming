@@ -34,15 +34,17 @@ __device__ bool is2exp(int idx)
 }
 
 //	thrust::device_ptr<int> WorS
-__global__ void KernelSetWorS(const char *text, int *WorS, const int startup)
+__global__ void KernelSetWorS(const char *text, int *WorS, const int startup, int levelsize)
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
-	if (text[idx] == '\n')
-		WorS[idx + startup] = 0;
-	else
-		WorS[idx + startup] = 1;
-
+	if (idx < levelsize)
+	{
+		if (text[idx] == '\n')
+			WorS[idx + startup] = 0;
+		else
+			WorS[idx + startup] = 1;
+	}
 }
 
 __global__ void KernelMakeTree(int *BIT, int h, int startup)
@@ -176,7 +178,7 @@ void CountPosition(const char *text, int *pos, int text_size)
 		if (h == 0)
 		{
 
-			KernelSetWorS <<< blockNum, 512 >>> (text, d_BIT, startup);puts(cudaGetErrorString(cudaGetLastError()));
+			KernelSetWorS <<< blockNum, 512 >>> (text, d_BIT, startup, levelsize);puts(cudaGetErrorString(cudaGetLastError()));
 		}
 		else
 		{
@@ -217,16 +219,10 @@ void CountPosition(const char *text, int *pos, int text_size)
 
 
 
-
-
-
-
-
-
 struct head_functor
 {
 	head_functor(){}
-	__host__ __device__ float operator()(const float& x, const float& y) const
+	__host__ __device__ int operator()(const int& x, const int& y) const
 	{
 		if (x == 1)
 			return y;
