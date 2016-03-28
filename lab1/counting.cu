@@ -216,7 +216,11 @@ void CountPosition(const char *text, int *pos, int text_size)
 }
 
 
-_
+
+
+
+
+
 
 
 struct head_functor
