@@ -2,8 +2,10 @@
 
 #include "MyFunctions.h"
 
-static const unsigned W = 640;
-static const unsigned H = 480;
+//static const unsigned W = 640;
+//static const unsigned H = 480;
+static const unsigned W = 1920;
+static const unsigned H = 1080;
 static const unsigned NFRAME = 240;
 
 struct Lab2VideoGenerator::Impl {
@@ -35,11 +37,11 @@ void Lab2VideoGenerator::Generate(uint8_t *yuv) {
 		cudaMemset(yuv, 0, W*H);
 		cudaMemset(yuv + W*H, 128, W*H / 4);
 		cudaMemset(yuv + (W*H) + (W*H / 4), 128, W*H / 4);
-		RainFall(yuv, W, H);
+		RainFall(yuv);
 		first_time = false;
 	}
 	else
 	{
-		RainFall(yuv, W, H);
+		RainFall(yuv);
 	}
 }

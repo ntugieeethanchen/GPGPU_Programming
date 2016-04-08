@@ -10,6 +10,13 @@
 
 using namespace std;
 
+static const unsigned W = 1920;
+static const unsigned H = 1080;
+static const int char_w = 12;
+static const int char_h = 24;
+static const int w_num = 160;
+static const int h_num = 45;
+
 class Rain
 {
 public:
@@ -18,7 +25,7 @@ public:
 
 	Rain()
 	{
-		pos = rand() % 53;
+		pos = rand() % w_num;
 		leng = (rand() % 10) + 5;
 	}
 };
@@ -26,51 +33,51 @@ public:
 __global__ void render(uint8_t *yuv, bool d_pos_occu[], int d_bright_time[], bool d_not_empty[], Character d_character_i[])
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	int col = idx % 53;
-	int row = idx / 53;
+	int col = idx % w_num;
+	int row = idx / w_num;
 
-	if (col < 53 && row < 20)
+	if (col < w_num && row < h_num)
 	{
-		int pixel_idx_start = (24 * 640 * row) + (12 * col);
-		int color_idx_start = (640 * 480) + (12 * 320 * row) + (6 * col);
+		int pixel_idx_start = (char_h * W * row) + (char_w * col);
+		int color_idx_start = (W * H) + (char_h/2 * W/2 * row) + (char_w/2 * col);
 		//	render
 
-		for (int i = 0; i < 24; i++)
+		for (int i = 0; i < char_h; i++)
 		{
-			for (int j = 0; j < 12; j++)
+			for (int j = 0; j < char_w; j++)
 			{
 				if(d_character_i[idx].bitmap[i][j] == true)
-					yuv[pixel_idx_start + (640 * i) + j] = 255 * d_bright_time[idx] / 20;
+					yuv[pixel_idx_start + (W * i) + j] = 255 * d_bright_time[idx] / 20;
 				else
-					yuv[pixel_idx_start + (640 * i) + j] = 0;
+					yuv[pixel_idx_start + (W * i) + j] = 0;
 			}
 		}
-		for (int i = 0; i < 12; i++)
+		for (int i = 0; i < char_h/2; i++)
 		{
-			for (int j = 0; j < 6; j++)
+			for (int j = 0; j < char_w/2; j++)
 			{
 				if(d_character_i[idx].bitmap[i*2][j*2])
-					yuv[color_idx_start + (320 * i) + j] = 128 - (0.331 * 255 * d_bright_time[idx] / 20) ;
+					yuv[color_idx_start + (W/2 * i) + j] = 128 - (0.331 * 255 * d_bright_time[idx] / 20) ;
 				else
-					yuv[color_idx_start + (320 * i) + j] = 128;
+					yuv[color_idx_start + (W/2 * i) + j] = 128;
 			}
 		}
-		for (int i = 0; i < 12; i++)
+		for (int i = 0; i < char_h / 2; i++)
 		{
-			for (int j = 0; j < 6; j++)
+			for (int j = 0; j < char_w / 2; j++)
 			{
 				if(d_character_i[idx].bitmap[i * 2][j * 2])
-					yuv[color_idx_start + (640 * 480 / 4) + (320 * i) + j] = 128 - (0.419 * 255 * d_bright_time[idx] / 20) ;
+					yuv[color_idx_start + (W * H / 4) + (W/2 * i) + j] = 128 - (0.419 * 255 * d_bright_time[idx] / 20);
 				else
-					yuv[color_idx_start + (640 * 480 / 4) + (320 * i) + j] = 128;
+					yuv[color_idx_start + (W * H / 4) + (W/2 * i) + j] = 128;
 			}
 		}
 		
 		//	prepare next round
 		int temp = d_bright_time[idx];
-		if (row >= 0 && row < 19)
+		if (row >= 0 && row < (h_num - 1))
 		{
-			d_bright_time[idx + 53] = temp;
+			d_bright_time[idx + w_num] = temp;
 		}
 
 		if (row == 0)
@@ -102,13 +109,13 @@ __global__ void render(uint8_t *yuv, bool d_pos_occu[], int d_bright_time[], boo
 
 
 
-void RainFall(uint8_t *yuv, unsigned w, unsigned h)
+void RainFall(uint8_t *yuv)
 {
-	static bool pos_occu[53] = { false };
-	static int bright_time[53 * 20] = { 0 };
-	static int char_id[53*20];
-	static Character character_i[53*20];
-	for (int i = 0; i < (53 * 20); i++)
+	static bool pos_occu[w_num] = { false };
+	static int bright_time[w_num * h_num] = { 0 };
+	static int char_id[w_num * h_num];
+	static Character character_i[w_num * h_num];
+	for (int i = 0; i < (w_num * h_num); i++)
 	{
 		char_id[i] = rand() % 10;
 		Character character_temp(char_id[i]);
@@ -116,7 +123,7 @@ void RainFall(uint8_t *yuv, unsigned w, unsigned h)
 	}
 	
 
-	int blockNum = ((53 * 20 + 1) / 512) + 1;
+	int blockNum = ((w_num * h_num + 1) / 512) + 1;
 	Rain *rain_i = new Rain[2];
 
 	for (int i = 0; i < 2; i++)
@@ -132,23 +139,23 @@ void RainFall(uint8_t *yuv, unsigned w, unsigned h)
 	 bool *d_not_empty;
 	 Character *d_character_i;
 
-	cudaMalloc(&d_pos_occu, 53 * sizeof(bool));
-	cudaMalloc(&d_bright_time, 53 * 20 * sizeof(int));
-	cudaMalloc(&d_not_empty, 53 * sizeof(bool));
-	cudaMalloc(&d_character_i, 53 * 20 * sizeof(Character));
+	 cudaMalloc(&d_pos_occu, w_num * sizeof(bool));
+	 cudaMalloc(&d_bright_time, w_num * h_num * sizeof(int));
+	 cudaMalloc(&d_not_empty, w_num * sizeof(bool));
+	 cudaMalloc(&d_character_i, w_num * h_num * sizeof(Character));
 
-	cudaMemset(d_pos_occu, false, 53 * sizeof(bool));
-	cudaMemset(d_bright_time, 0, 53 * 20 * sizeof(int));
-	cudaMemset(d_not_empty, false, 53 * sizeof(bool));
+	 cudaMemset(d_pos_occu, false, w_num * sizeof(bool));
+	 cudaMemset(d_bright_time, 0, w_num * h_num * sizeof(int));
+	 cudaMemset(d_not_empty, false, w_num * sizeof(bool));
 
-	cudaMemcpy(d_pos_occu, pos_occu, 53 * sizeof(bool), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_bright_time, bright_time, 53 * 20 * sizeof(int), cudaMemcpyHostToDevice);
-	cudaMemcpy(d_character_i, character_i, 53 * 20 * sizeof(Character), cudaMemcpyHostToDevice);
+	 cudaMemcpy(d_pos_occu, pos_occu, w_num * sizeof(bool), cudaMemcpyHostToDevice);
+	 cudaMemcpy(d_bright_time, bright_time, w_num * h_num * sizeof(int), cudaMemcpyHostToDevice);
+	 cudaMemcpy(d_character_i, character_i, w_num * h_num * sizeof(Character), cudaMemcpyHostToDevice);
 
 	render << < blockNum, 512 >> > (yuv, d_pos_occu, d_bright_time, d_not_empty, d_character_i);
 
-	cudaMemcpy(pos_occu, d_pos_occu, 53 * sizeof(bool), cudaMemcpyDeviceToHost);
-	cudaMemcpy(bright_time, d_bright_time, 53 * 20 * sizeof(int), cudaMemcpyDeviceToHost);
+	cudaMemcpy(pos_occu, d_pos_occu, w_num * sizeof(bool), cudaMemcpyDeviceToHost);
+	cudaMemcpy(bright_time, d_bright_time, w_num * h_num * sizeof(int), cudaMemcpyDeviceToHost);
 
 	cudaFree(d_pos_occu);
 	cudaFree(d_bright_time);
