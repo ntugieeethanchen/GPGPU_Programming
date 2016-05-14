@@ -70,25 +70,25 @@ __global__ void CalculateFixed(
 					+ target[(curt + wt) * 3 + 2] + target[(curt + 1) * 3 + 2]);
 			}
 
-			if (mask[curt - wt] != 255.0f || yt == 0)
+			if (yt == 0 || mask[curt - wt] != 255.0f)
 			{
 				fixed[curt * 3 + 0] += background[(curb - wb) * 3 + 0];
 				fixed[curt * 3 + 1] += background[(curb - wb) * 3 + 1];
 				fixed[curt * 3 + 2] += background[(curb - wb) * 3 + 2];
 			}
-			if (mask[curt - 1] != 255.0f || xt == 0)
+			if (xt == 0 || mask[curt - 1] != 255.0f)
 			{
 				fixed[curt * 3 + 0] += background[(curb - 1) * 3 + 0];
 				fixed[curt * 3 + 1] += background[(curb - 1) * 3 + 1];
 				fixed[curt * 3 + 2] += background[(curb - 1) * 3 + 2];
 			}
-			if (mask[curt + wt] != 255.0f || yt == (ht - 1))
+			if (yt == (ht - 1) || mask[curt + wt] != 255.0f)
 			{
 				fixed[curt * 3 + 0] += background[(curb + wb) * 3 + 0];
 				fixed[curt * 3 + 1] += background[(curb + wb) * 3 + 1];
 				fixed[curt * 3 + 2] += background[(curb + wb) * 3 + 2];
 			}
-			if (mask[curt + 1] != 255.0f || xt == (wt - 1))
+			if (xt == (wt - 1) || mask[curt + 1] != 255.0f)
 			{
 				fixed[curt * 3 + 0] += background[(curb + 1) * 3 + 0];
 				fixed[curt * 3 + 1] += background[(curb + 1) * 3 + 1];
@@ -111,39 +111,32 @@ __global__ void PoissonImageCloningIteration(
 	const int xt = blockIdx.x * blockDim.x + threadIdx.x;
 	const int curt = wt*yt + xt;
 	if (yt < ht and xt < wt and mask[curt] > 127.0f) {
-		buf2[curt * 3 + 0] = fixed[curt * 3 + 0] 
-			+ (buf1[(curt - wt) * 3 + 0] + buf1[(curt - 1) * 3 + 0]
-			+ buf1[(curt + wt) * 3 + 0] + buf1[(curt + 1) * 3 + 0]);
-		buf2[curt * 3 + 1] = fixed[curt * 3 + 1]
-			+ (buf1[(curt - wt) * 3 + 1] + buf1[(curt - 1) * 3 + 1]
-			+ buf1[(curt + wt) * 3 + 1] + buf1[(curt + 1) * 3 + 1]);
-		buf2[curt * 3 + 2] = fixed[curt * 3 + 2]
-			+ (buf1[(curt - wt) * 3 + 2] + buf1[(curt - 1) * 3 + 2]
-			+ buf1[(curt + wt) * 3 + 2] + buf1[(curt + 1) * 3 + 2]);
-
-		if (mask[curt - wt] != 255.0f || yt == 0)
+		buf2[curt * 3 + 0] = fixed[curt * 3 + 0];
+		buf2[curt * 3 + 1] = fixed[curt * 3 + 1];
+		buf2[curt * 3 + 2] = fixed[curt * 3 + 2];
+		if (yt != 0 && mask[curt - wt] == 255.0f)
 		{
-			buf2[curt * 3 + 0] -= buf1[(curt - wt) * 3 + 0];
-			buf2[curt * 3 + 1] -= buf1[(curt - wt) * 3 + 1];
-			buf2[curt * 3 + 2] -= buf1[(curt - wt) * 3 + 2];
+			buf2[curt * 3 + 0] += buf1[(curt - wt) * 3 + 0];
+			buf2[curt * 3 + 1] += buf1[(curt - wt) * 3 + 1];
+			buf2[curt * 3 + 2] += buf1[(curt - wt) * 3 + 2];
 		}
-		if (mask[curt - 1] != 255.0f || xt == 0)
+		if (xt != 0 && mask[curt - 1] == 255.0f)
 		{
-			buf2[curt * 3 + 0] -= buf1[(curt - 1) * 3 + 0];
-			buf2[curt * 3 + 1] -= buf1[(curt - 1) * 3 + 1];
-			buf2[curt * 3 + 2] -= buf1[(curt - 1) * 3 + 2];
+			buf2[curt * 3 + 0] += buf1[(curt - 1) * 3 + 0];
+			buf2[curt * 3 + 1] += buf1[(curt - 1) * 3 + 1];
+			buf2[curt * 3 + 2] += buf1[(curt - 1) * 3 + 2];
 		}
-		if (mask[curt + wt] != 255.0f || yt == (ht - 1))
+		if (yt != (ht - 1) && mask[curt + wt] == 255.0f)
 		{
-			buf2[curt * 3 + 0] -= buf1[(curt + wt) * 3 + 0];
-			buf2[curt * 3 + 1] -= buf1[(curt + wt) * 3 + 1];
-			buf2[curt * 3 + 2] -= buf1[(curt + wt) * 3 + 2];
+			buf2[curt * 3 + 0] += buf1[(curt + wt) * 3 + 0];
+			buf2[curt * 3 + 1] += buf1[(curt + wt) * 3 + 1];
+			buf2[curt * 3 + 2] += buf1[(curt + wt) * 3 + 2];
 		}
-		if (mask[curt + 1] != 255.0f || xt == (wt - 1))
+		if (xt != (wt - 1) && mask[curt + 1] == 255.0f)
 		{
-			buf2[curt * 3 + 0] -= buf1[(curt + 1) * 3 + 0];
-			buf2[curt * 3 + 1] -= buf1[(curt + 1) * 3 + 1];
-			buf2[curt * 3 + 2] -= buf1[(curt + 1) * 3 + 2];
+			buf2[curt * 3 + 0] += buf1[(curt + 1) * 3 + 0];
+			buf2[curt * 3 + 1] += buf1[(curt + 1) * 3 + 1];
+			buf2[curt * 3 + 2] += buf1[(curt + 1) * 3 + 2];
 		}
 
 		buf2[curt * 3 + 0] /= 4;
@@ -277,10 +270,10 @@ void PoissonImageCloning(
 		}
 		else
 		{
-			ws[i] = ws[i-1] / 2;
-			hs[i] = hs[i-1] / 2;
-			wbs[i] = wbs[i-1] / 2;
-			hbs[i] = hbs[i-1] / 2;
+			ws[i] = (ws[i-1] + 1) / 2;
+			hs[i] = (hs[i-1] + 1) / 2;
+			wbs[i] = (wbs[i-1] + 1) / 2;
+			hbs[i] = (hbs[i-1] + 1) / 2;
 		}
 	}
 	//Malloc
